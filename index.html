@@ -42,12 +42,37 @@
     height: auto;      /* mantiene proporción */
   }
 
+  summary{font-size: 1.2rem;font-weight: bold;cursor: pointer;list-style: none;}
+  summary::-webkit-details-marker{display: none;}
+  summary::after{content: "➕ info";}
+  /*details[open] summary::before{content: "➖ info";}*/
   </style>
 </head>
+
 <body>
 
-<h1>🧱 Breakout</h1>
+<h1>🧱 El Juego de los Ladrillos - Breakout 🧱</h1>
 <p>Creado por Raquel</p>
+ <div class="instructions">
+  <details>
+  <summary><h2>¿Cómo jugar?</h2></summary>
+    <p><strong>Mueve la paleta</strong> para golpear la pelota y romper todos los ladrillos.</p>
+    <h3><strong>🎮 Controles:</strong></h3>
+    <p>💻 Teclado: usa ⬅️ ➡️.</p>
+    <p>📱 Móvil: desliza la barra con el dedo.</p>
+    <h3><strong>🎯 Objetivo:</strong></h3>
+    <p>Rompe todos los ladrillos 🧱.</p>
+    <p>Gana puntos con cada golpe.</p>
+    <p>Consigue power-ups 🎁 para ayudarte.</p>
+    <h3><strong>‼️Cuidado:</strong></h3>
+    <p>No dejes caer la pelota ⚠️.</p>
+    <p>Solo tienes un número limitado de vidas ❤️.</p>
+    <h3><strong>✨ Power-ups</strong></h3>
+    <p>🟢 Paleta grande.</p>
+    <p>🟠 Pelota más rápida.</p>
+    <p>🔴 Vida extra.</p>
+  </details>  
+  </div>
 
 <canvas id="game" width="400" height="500"></canvas>
 <button id="resetBtn">Reiniciar</button>
@@ -502,7 +527,6 @@ function update() {
   canvas.addEventListener("touchmove", e => {
     e.preventDefault();
   });
-
   update();
 </script>
 
