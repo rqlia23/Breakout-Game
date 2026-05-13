@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Breakout – Raquel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      text-align: center;
+      font-family: Arial, sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    canvas {
+      background: #ffffff;
+      border: 3px solid #22c55e;
+      border-radius: 10px;
+      margin: 20px auto;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🧱 Breakout</h1>
+<p>Creado por Raquel</p>
+
+<canvas id="game" width="400" height="500"></canvas>
+
+<script>
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  let score = 0;
+  let lives = 3;
+  let gameState = "playing"; // playing | gameover | win
+
+  // Paleta
+  const paddle = {
+    width: 80,
+    height: 12,
+    x: canvas.width / 2 - 40,
+    y: canvas.height - 30,
+    speed: 6,
+    dx: 0
+  };
+
+  // Pelota
+  const ball = {
+    x: canvas.width / 2,
+    y: canvas.height - 50,
+    radius: 8,
+    dx: 3,
+    dy: -3
+  };
+
+  // Ladrillos
+  const brickRowCount = 5;
+  const brickColumnCount = 6;
+  const brickWidth = 50;
+  const brickHeight = 18;
+  const brickPadding = 10;
+  const brickOffsetTop = 40;
+  const brickOffsetLeft = 25;
+  //const totalBrickWidth = brickColumnCount * brickWidth + (brickColumnCount - 1) * brickPadding;
+  //const brickOffsetLeft = (canvas.width - totalBrickWidth) / 2;
+  let bricksRemaining = brickRowCount * brickColumnCount;
+  
+  const bricks = [];
+
+  for (let c = 0; c < brickColumnCount; c++) {
+    bricks[c] = [];
+    for (let r = 0; r < brickRowCount; r++) {
+      bricks[c][r] = {
+        x: 0,
+        y: 0,
+        visible: true
+      };
+    }
+  }
+
+  function drawPaddle() {
+    ctx.fillStyle = "#22c55e";
+    ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+  }
+
+  function drawBall() {
+    ctx.fillStyle = "#0f172a";
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  //Dibujar la puntuación en pantalla
+  function drawScore() {
+  ctx.font = "16px Arial";
+  ctx.fillStyle = "#0f172a";
+  ctx.fillText("Puntuación: " + score, 10, 20);
+}
+
+//Dibujar vidas en pantalla
+function drawLives() {
+  ctx.font = "16px Arial";
+  ctx.fillStyle = "#0f172a";
+  ctx.fillText("Vidas: " + lives, canvas.width - 80, 20);
+}
+
+
+  function drawBricks() {
+  for (let c = 0; c < brickColumnCount; c++) {
+    for (let r = 0; r < brickRowCount; r++) {
+      const brick = bricks[c][r];
+      if (brick.visible) {
+        const brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+        const brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+
+        brick.x = brickX;
+        brick.y = brickY;
+
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillRect(brickX, brickY, brickWidth, brickHeight);
+      }
+    }
+  }
+}
+
+//Muestra mensajes en pantalla
+function drawMessage(text) {
+  ctx.font = "28px Arial";
+  ctx.fillStyle = "#0f172a";
+  ctx.textAlign = "center";
+  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+  ctx.font = "16px Arial";
+  ctx.fillText("Pulsa F5 para reiniciar", canvas.width / 2, canvas.height / 2 + 30);
+
+  ctx.textAlign = "left";
+}
+
+  function movePaddle() {
+    paddle.x += paddle.dx;
+
+    // Limitar a los bordes
+    if (paddle.x < 0) paddle.x = 0;
+    if (paddle.x + paddle.width > canvas.width) {
+      paddle.x = canvas.width - paddle.width;
+    }
+  }
+
+  function moveBall() {
+    ball.x += ball.dx;
+    ball.y += ball.dy;
+
+    // Rebote paredes
+    if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
+      ball.dx *= -1;
+    }
+    if (ball.y - ball.radius < 0) {
+      ball.dy *= -1;
+    }
+
+    // Rebote con la paleta (realista)
+    if (ball.y + ball.radius > paddle.y && ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
+      // Distancia desde el centro de la paleta
+      const collidePoint = ball.x - (paddle.x + paddle.width / 2);
+      // Normalizamos (-1 a 1)
+      const normalizedCollision = collidePoint / (paddle.width / 2);
+      // Ángulo máximo (60 grados)
+      const maxBounceAngle = Math.PI / 3;
+      // Ángulo final
+      const bounceAngle = normalizedCollision * maxBounceAngle;
+      // Velocidad constante
+      const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+      // Nueva dirección
+      ball.dx = speed * Math.sin(bounceAngle);
+      ball.dy = -speed * Math.cos(bounceAngle);
+      ball.y = paddle.y - ball.radius;
+    }
+    // Si la pelota cae...
+    if (ball.y + ball.radius > canvas.height) {
+      lives--;
+      if (lives === 0) {
+        gameState = "gameover";
+      } else {
+        resetBallAndPaddle();
+      }
+    }
+  }
+
+  function collisionDetection() {
+    for (let c = 0; c < brickColumnCount; c++) {
+      for (let r = 0; r < brickRowCount; r++) {
+        const brick = bricks[c][r];
+        if (brick.visible) {
+          if (
+            ball.x > brick.x &&
+            ball.x < brick.x + brickWidth &&
+            ball.y > brick.y &&
+            ball.y < brick.y + brickHeight
+          ) {
+              brick.visible = false;
+              ball.dy *= -1;
+              score += 10; //Suma puntos al romper un ladrillo
+              bricksRemaining--;
+            if (bricksRemaining === 0) {
+              gameState = "win"; //cuando no queda ningún ladrillo, victoria
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    drawBricks();
+    drawPaddle();
+    drawBall();
+    drawScore(); //dibuja la puntuación
+    drawLives(); //dibuja las vidas
+
+    if (gameState === "gameover") {
+      drawMessage("💀 Game Over");
+    }
+    if (gameState === "win") {
+      drawMessage("🏆 ¡Has ganado!");
+    }
+  }
+
+  //Reiniciar pelota y paleta (sin reiniciar todo)
+  //Esto hace que el jugador no pierda los ladrillos ni la puntuación, y que el juego continúe de forma justa
+  function resetBallAndPaddle() {
+  ball.x = canvas.width / 2;
+  ball.y = canvas.height - 50;
+  ball.dx = 3 * (Math.random() > 0.5 ? 1 : -1);
+  ball.dy = -3;
+
+  paddle.x = canvas.width / 2 - paddle.width / 2;
+}
+
+
+  function update() {
+    if (gameState === "playing"){
+      movePaddle();
+      moveBall();
+      collisionDetection();
+    }
+    draw();
+    requestAnimationFrame(update);
+  }
+
+  // Controles
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowLeft") paddle.dx = -paddle.speed;
+    if (e.key === "ArrowRight") paddle.dx = paddle.speed;
+  });
+
+  document.addEventListener("keyup", () => paddle.dx = 0);
+
+  update();
+</script>
+
+</body>
+</html>
